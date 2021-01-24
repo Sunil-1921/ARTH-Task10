@@ -1,0 +1,50 @@
+- hosts: all
+  tasks:
+          - name: "Adding Docker repository in YUM"
+            yum_repository:
+                    baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+                    name: "Docker"
+                    gpgcheck: no
+                    description: "Docker for YUM"
+
+          - name: "Installing Docker"
+            command: "yum install docker-ce --nobest -y"
+          - name: "Create new dirctory"
+            file:
+                    state: directory 
+                    path: "/root/httpd_files"
+
+          - name: "Uploading file to TargetNode"
+            copy:
+                    src: "index.html"
+                    dest: "/root/httpd_files"
+
+          - name: "Starting Docker Service"
+            service:
+                    name: "docker"
+                    state: restarted
+
+          - name: "Pulling Httpd Docker image form DockerHub"
+            docker_image: 
+                    name: "centos/httpd-24-centos7"
+                    state: present
+                    source: pull
+          - name: "Installing docker-py"
+            pip:
+                    name: "docker-py"
+                    state: present
+          - name: "Starting docker container"
+            docker_container:
+                    name: "webserver7"
+                    image: "centos/httpd-24-centos7"
+                    state: started
+                    tty: yes
+                    detach: yes
+                    interactive: true
+                    exposed_ports: 80
+                    ports: 
+                    - "8080:80"
+
+          - name: "Uploading WebPage in Docker Container"
+            command: "docker cp /root/httpd_files/index.html  webserver7:/var/www/html"
+            ignore_errors: yes
